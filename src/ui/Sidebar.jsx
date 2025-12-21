@@ -1,6 +1,6 @@
 import styled from 'styled-components'
-import Logo from '../src/ui/Logo'
-import MainNav from '../src/ui/MainNav'
+import Logo from './Logo'
+import MainNav from './MainNav'
 
 const StyledAside = styled.aside`
   background-color: var(--color-grey-0);
