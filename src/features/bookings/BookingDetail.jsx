@@ -1,14 +1,23 @@
-import styled from "styled-components";
+import styled from 'styled-components';
 
-import BookingDataBox from "./BookingDataBox";
-import Row from "../../ui/Row";
-import Heading from "../../ui/Heading";
-import Tag from "../../ui/Tag";
-import ButtonGroup from "../../ui/ButtonGroup";
-import Button from "../../ui/Button";
-import ButtonText from "../../ui/ButtonText";
-
-import { useMoveBack } from "../../hooks/useMoveBack";
+import BookingDataBox from './BookingDataBox';
+import Row from '../../ui/Row';
+import Heading from '../../ui/Heading';
+import Tag from '../../ui/Tag';
+import ButtonGroup from '../../ui/ButtonGroup';
+import Button from '../../ui/Button';
+import ButtonText from '../../ui/ButtonText';
+import Spinner from '../../ui/Spinner';
+import { useBooking } from './useBooking';
+import { useMoveBack } from '../../hooks/useMoveBack';
+import { useNavigate } from 'react-router-dom';
+import { HiArrowUpOnSquare } from 'react-icons/hi2';
+import { useCheckedOut } from '../check-in-out/useChekedOut';
+import Modal from '../../ui/Modal';
+import ConfirmDelete from '../../ui/ConfirmDelete';
+import { deleteBooking } from '../../services/apiBookings';
+import { useDeleteBooking } from '../check-in-out/useDeleteBooking';
+import Empty from '../../ui/Empty';
 
 const HeadingGroup = styled.div`
   display: flex;
@@ -17,23 +26,30 @@ const HeadingGroup = styled.div`
 `;
 
 function BookingDetail() {
-  const booking = {};
-  const status = "checked-in";
+  const { booking, isPending } = useBooking();
+  const navigate = useNavigate();
+  const { checkedout, isCheckedOut } = useCheckedOut();
+  const { deleteBooking, isDeleteBooking } = useDeleteBooking();
 
   const moveBack = useMoveBack();
 
+  if (isPending || isDeleteBooking) return <Spinner />;
+  if (!booking) return <Empty resource={'booking'} />;
+
+  const { status, id: bookingId } = booking;
+
   const statusToTagName = {
-    unconfirmed: "blue",
-    "checked-in": "green",
-    "checked-out": "silver",
+    unconfirmed: 'blue',
+    'checked-in': 'green',
+    'checked-out': 'silver',
   };
 
   return (
     <>
       <Row type="horizontal">
         <HeadingGroup>
-          <Heading as="h1">Booking #X</Heading>
-          <Tag type={statusToTagName[status]}>{status.replace("-", " ")}</Tag>
+          <Heading as="h1">Booking #{bookingId}</Heading>
+          <Tag type={statusToTagName[status]}>{status.replace('-', ' ')}</Tag>
         </HeadingGroup>
         <ButtonText onClick={moveBack}>&larr; Back</ButtonText>
       </Row>
@@ -44,6 +60,39 @@ function BookingDetail() {
         <Button variation="secondary" onClick={moveBack}>
           Back
         </Button>
+        {status === 'unconfirmed' && (
+          <Button onClick={() => navigate(`/checkin/${bookingId}`)}>
+            check in
+          </Button>
+        )}
+
+        {status === 'checked-in' && (
+          <Button
+            icon={<HiArrowUpOnSquare />}
+            onClick={() => checkedout(bookingId)}
+            disabled={isCheckedOut}
+          >
+            check out
+          </Button>
+        )}
+
+        <Modal>
+          <Modal.Open opens="delete">
+            <Button variation="danger">delete</Button>
+          </Modal.Open>
+
+          <Modal.Window name="delete">
+            <ConfirmDelete
+              resourceName="booking"
+              disabled={isDeleteBooking}
+              onConfirm={() => {
+                deleteBooking(bookingId, {
+                  onSettled: navigate(-1),
+                });
+              }}
+            />
+          </Modal.Window>
+        </Modal>
       </ButtonGroup>
     </>
   );
